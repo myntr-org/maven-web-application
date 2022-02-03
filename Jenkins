@@ -1,0 +1,83 @@
+pipeline
+ 
+{
+agent any
+
+tools{
+maven 'Maven_3.8.4'
+ } 
+ 
+triggers{
+pollSCM('* * * * *')
+}
+ 
+options{
+buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5'))
+}
+
+stages
+{
+ stage(' CheckOutCode ')
+{
+ steps{
+  git credentialsId: '048dda85-7831-4a48-ae8a-3dd8505ee5ff', url: 'https://github.com/myntr-org/maven-web-application.git'
+      } 
+  }
+
+ stage(' Build' )
+{
+ steps{
+ sh "mvn clean package"
+ 
+ }
+}
+ 
+ stage('SonarQubeReport')
+ 
+{
+  steps{
+  sh "mvn sonar:sonar"
+} 
+
+  }
+ stage('UploadingToNexu')
+{
+ steps{
+   sh "mvn clean deploy"
+
+}
+
+}
+ stage('DeployToTomcat')
+{ 
+ steps{
+ sshagent(['80240900-94fd-49fa-90ee-d9a5290eec8e']) {
+ sh "rm -rf /opt/apache-tomcat-9.0.58/webapps/maven-web-application.war"
+ sh " scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.143.250.180:/opt/apache-tomcat-9.0.56/webapps"
+}
+
+  }
+
+}
+/*
+  post{  
+
+always{  
+
+emailext body: '''declarative_script over
+
+regards
+hari''', subject: 'declarative_script', to: 'ismailsrihari123@gmail.com'
+}
+
+sucess{
+   emailext body: '''declarative_script over
+regards
+hari''', subject: 'declarative_script', to: 'ismailsrihari123@gmail.com,sriharihoney.1996@gmail.com'
+
+}
+}
+*/
+
+}
+}
